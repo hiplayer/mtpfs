@@ -1,0 +1,4 @@
+mtpfs
+=====
+
+for mtp camera
