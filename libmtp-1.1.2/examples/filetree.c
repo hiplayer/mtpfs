@@ -141,7 +141,14 @@ int main (int argc, char **argv)
     /* Loop over storages */
     for (storage = device->storage; storage != 0; storage = storage->next) {
       fprintf(stdout, "Storage: %s\n", storage->StorageDescription);
-      recursive_file_tree(device, storage, 0, 0);
+/*
+ * when leaf set to 0
+ * according PIMA15740 ,GetObjectHandles will return ObjectHandles aggregated across the entire device
+ * while leaf was set to 0xffffffff.
+ * it only return the content under the root folder
+ */
+      //recursive_file_tree(device, storage, 0, 0);
+      recursive_file_tree(device, storage, 0xffffffff, 0);
     }
 
   bailout:

@@ -51,6 +51,7 @@ LIBMTP_Get_Files_And_Folders
 LIBMTP_Get_Filemetadata
 LIBMTP_Get_File_To_File
 LIBMTP_Get_File_To_File_Descriptor
+LIBMTP_Get_Partialobject_To_Buffer
 LIBMTP_Send_File_From_File
 LIBMTP_Send_File_From_File_Descriptor
 LIBMTP_new_filesampledata_t

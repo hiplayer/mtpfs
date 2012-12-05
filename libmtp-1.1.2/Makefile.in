@@ -87,7 +87,7 @@ am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
 am__installdirs = "$(DESTDIR)$(pkgconfigdir)" \
 	"$(DESTDIR)$(udevrulesdir)"
-DATA = $(noinst_DATA) $(pkgconfig_DATA) $(udevrules_DATA)
+DATA = $(pkgconfig_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
@@ -261,7 +261,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = src examples util doc
+SUBDIRS = src examples doc
 ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libmtp.pc
@@ -750,7 +750,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-pkgconfigDATA install-udevrulesDATA
+install-data-am: install-pkgconfigDATA 
 
 install-dvi: install-dvi-recursive
 
@@ -796,7 +796,7 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-pkgconfigDATA uninstall-udevrulesDATA
+uninstall-am: uninstall-pkgconfigDATA 
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all \
 	ctags-recursive install-am install-strip tags-recursive
