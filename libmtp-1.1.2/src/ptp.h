@@ -2785,6 +2785,29 @@ ptp_operation_issupported(PTPParams* params, uint16_t operation)
 	}
 	return 0;
 }
+static inline int
+ptp_operation_isok(PTPParams* params,uint16_t *operations,int size)
+{
+	
+	int i=0;
+	int find_0x8xxx_op=0;
+	for (i=0;i<size;i++) {
+		//printf("op=%.4x\n",*(operations+i));
+		if(ptp_operation_issupported(params,*(operations+i))!=1){
+			return 0;
+		}
+	}
+	for (i=0;i<params->deviceinfo.OperationsSupported_len;i++) {
+		if (params->deviceinfo.OperationsSupported[i]&0x8000)
+		{
+			//printf("op=%.4x\n",params->deviceinfo.OperationsSupported[i]);
+			find_0x8xxx_op=1;
+			break;
+		}
+	}
+	return find_0x8xxx_op;
+}
+
 
 int ptp_event_issupported	(PTPParams* params, uint16_t event);
 int ptp_property_issupported	(PTPParams* params, uint16_t property);

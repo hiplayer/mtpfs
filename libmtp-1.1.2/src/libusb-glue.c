@@ -540,14 +540,12 @@ static LIBMTP_error_number_t get_mtp_usb_device_list(mtpdevice_list_t ** mtp_dev
 	   * By thomas_-_s: Also append devices that are no MTP but PTP devices
 	   * if this is commented out.
 	   */
-	  /*
 	  else {
 	    // Check whether the device is no USB hub but a PTP.
 	    if ( dev->config != NULL &&dev->config->interface->altsetting->bInterfaceClass == USB_CLASS_PTP && dev->descriptor.bDeviceClass != USB_CLASS_HUB ) {
 	      *mtp_device_list = append_to_mtpdevice_list(*mtp_device_list, dev, bus->location);
 	    }
           }
-	  */
         }
       }
     }
