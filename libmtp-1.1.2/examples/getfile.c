@@ -23,16 +23,6 @@
 #include <stdlib.h>
 #include <limits.h>
 
-
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <time.h>
-#include <errno.h>
-
 #include "common.h"
 #include "pathutils.h"
 #include "connect.h"
@@ -50,49 +40,15 @@ int
 getfile_function(char * from_path,char * to_path)
 {
   int id = parse_path (from_path,files,folders);
-  int filesize=0;
-  int toread=0;
-  int offset=0;
-  int maxbytes=65536;
-  int len=0;
-  int fd=-1;
-  unsigned char *buf = NULL;
-  LIBMTP_file_t *file_it=files;
-	
-  
   if (id > 0) {
     printf("Getting %s to %s\n",from_path,to_path);
-#if 0 
-    if (LIBMTP_Get_File_To_File(device, id, to_path, progress, NULL) != 0 ) 
-#else
-	    if ( (fd = open(to_path, O_RDWR|O_CREAT|O_TRUNC,S_IRWXU|S_IRGRP)) != -1) {
-		    while(file_it!=NULL){
-			    if(file_it->item_id==id){
-				    filesize=file_it->filesize;
-				    break;
-			    }
-			    file_it=file_it->next;
-		    }
-                    printf("filesize=%d\n",filesize);
-		    while(toread<filesize){
-			    offset=toread;
-			    LIBMTP_Get_Partialobject_To_Buffer(device, id , offset ,maxbytes ,&buf , &len , NULL ,NULL);
-			    printf("getlen=%d\n",len);
-			    write(fd,buf,len);
-			    free(buf);
-                            buf=NULL;
-			    toread=toread+len;
-		    }
-		    close(fd);
-		}
-               printf("fd=%d\n",fd);
-   }else{
-#endif
+    if (LIBMTP_Get_File_To_File(device, id, to_path, progress, NULL) != 0 ) {
       printf("\nError getting file from MTP device.\n");
       LIBMTP_Dump_Errorstack(device);
       LIBMTP_Clear_Errorstack(device);
       return 1;
     }
+  }
   return 0;
 }
 

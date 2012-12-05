@@ -1773,17 +1773,6 @@ static void parse_extension_descriptor(LIBMTP_mtpdevice_t *mtpdevice,
  * @param rawdevice the raw device to open a "real" device for.
  * @return an open device.
  */
-
-uint16_t operations[]={
-	0x1001,				/*get device info*/
-	0x1002,				/*Open session*/
-	0x1003,				/*Close session*/
-	0x1004,				/*Get storage IDs*/
-	0x1005,				/*Get storage info*/
-	0x1008,				/*Get object info*/
-	0x101b,				/*Get partial object*/
-};
-
 LIBMTP_mtpdevice_t *LIBMTP_Open_Raw_Device_Uncached(LIBMTP_raw_device_t *rawdevice)
 {
   LIBMTP_mtpdevice_t *mtp_device;
@@ -1871,32 +1860,6 @@ LIBMTP_mtpdevice_t *LIBMTP_Open_Raw_Device_Uncached(LIBMTP_raw_device_t *rawdevi
     return NULL;
   }
 
-  int code_it=0;
-
-  printf("Supported operations:\n");
-
-  printf("current_params->deviceinfo.OperationsSupported_len=%d\n",current_params->deviceinfo.OperationsSupported_len);
-  for (code_it=0;code_it<current_params->deviceinfo.OperationsSupported_len;code_it++) {
-    char txt[256];
-
-    (void) ptp_render_opcode(current_params, current_params->deviceinfo.OperationsSupported[code_it],
-			     sizeof(txt), txt);
-    printf("   %04x: %s\n", current_params->deviceinfo.OperationsSupported[code_it], txt);
-  }
-  if (!ptp_operation_isok(current_params,operations,sizeof(operations)/sizeof(uint16_t))) {
-    LIBMTP_ERROR("LIBMTP PANIC: Unable to read device information on device "
-	    "%d on bus %d, trying to continue",
-	    rawdevice->devnum, rawdevice->bus_location);
-
-    /* Prevent memory leaks for this device */
-    free(mtp_device->usbinfo);
-    free(mtp_device->params);
-    current_params = NULL;
-    free(mtp_device);
-    return NULL;
-  }
-
-
   /* Check: if this is a PTP device, is it really tagged as MTP? */
   if (current_params->deviceinfo.VendorExtensionID != 0x00000006) {
     LIBMTP_ERROR("LIBMTP WARNING: no MTP vendor extension on device "
@@ -1911,8 +1874,8 @@ LIBMTP_mtpdevice_t *LIBMTP_Open_Raw_Device_Uncached(LIBMTP_raw_device_t *rawdevi
 		 "Trying to continue anyway.");
   }
 
-  //parse_extension_descriptor(mtp_device,
-                             //current_params->deviceinfo.VendorExtensionDesc);
+  parse_extension_descriptor(mtp_device,
+                             current_params->deviceinfo.VendorExtensionDesc);
 
   /*
    * Android has a number of bugs, force-assign these bug flags
@@ -1967,7 +1930,6 @@ LIBMTP_mtpdevice_t *LIBMTP_Open_Raw_Device_Uncached(LIBMTP_raw_device_t *rawdevi
   }
 
   /* Determine if the object size supported is 32 or 64 bit wide */
-/*
   for (i=0;i<current_params->deviceinfo.ImageFormats_len;i++) {
     PTPObjectPropDesc opd;
 
@@ -2005,7 +1967,6 @@ LIBMTP_mtpdevice_t *LIBMTP_Open_Raw_Device_Uncached(LIBMTP_raw_device_t *rawdevi
       }
     }
   }
-*/
   if (bs == 0) {
     // Could not detect object bitsize, assume 32 bits
     bs = 32;
@@ -2671,17 +2632,13 @@ static void flush_handles(LIBMTP_mtpdevice_t *device)
     params->objects = NULL;
     params->nrofobjects = 0;
   }
-/*
- * PTP_OC_MTP_GetObjPropList command was not implement well in some device for example Canon Power shot SD 750.
- */
-/*
+
   if (ptp_operation_issupported(params,PTP_OC_MTP_GetObjPropList)
       && !FLAG_BROKEN_MTPGETOBJPROPLIST(ptp_usb)
       && !FLAG_BROKEN_MTPGETOBJPROPLIST_ALL(ptp_usb)) {
     // Use the fast method. Ignore return value for now.
     ret = get_all_metadata_fast(device, PTP_GOH_ALL_STORAGE);
   }
-*/
 
   // If the previous failed or returned no objects, use classic
   // methods instead.
@@ -4109,9 +4066,7 @@ static LIBMTP_file_t *obj2file(LIBMTP_mtpdevice_t *device, PTPObject *ob)
     uint32_t propcnt = 0;
     int ret;
 
-
     // First see which properties can be retrieved for this object format
-    /*
     ret = ptp_mtp_getobjectpropssupported(params, map_libmtp_type_to_ptp_type(file->filetype), &propcnt, &props);
     if (ret != PTP_RC_OK) {
       add_ptp_error_to_errorstack(device, ret, "obj2file: call to ptp_mtp_getobjectpropssupported() failed.");
@@ -4132,7 +4087,6 @@ static LIBMTP_file_t *obj2file(LIBMTP_mtpdevice_t *device, PTPObject *ob)
       }
       free(props);
     }
-    */
   }
 
   return file;
@@ -5094,67 +5048,6 @@ int LIBMTP_Get_File_To_File_Descriptor(LIBMTP_mtpdevice_t *device,
   }
   if (ret != PTP_RC_OK) {
     add_ptp_error_to_errorstack(device, ret, "LIBMTP_Get_File_To_File_Descriptor(): Could not get file from device.");
-    return -1;
-  }
-
-  return 0;
-}
-
-/**
- * This gets partialobject of a file off the device to a buffer
- *
- * @see LIBMTP_Get_File_To_File()
- */
-int LIBMTP_Get_Partialobject_To_Buffer(LIBMTP_mtpdevice_t *device,
-					uint32_t const id,
-					uint32_t offset,
-					uint32_t maxbytes,
-					unsigned char **buf,
-					uint32_t *len,				
-					LIBMTP_progressfunc_t const callback,
-					void const * const data)
-{
-  uint16_t ret;
-  PTPParams *params = (PTPParams *) device->params;
-  PTP_USB *ptp_usb = (PTP_USB*) device->usbinfo;
-  PTPObject *ob;
-
-  ret = ptp_object_want (params, id, PTPOBJECT_OBJECTINFO_LOADED, &ob);
-  if (ret != PTP_RC_OK) {
-    add_error_to_errorstack(device, LIBMTP_ERROR_GENERAL, "LIBMTP_Get_Partialobject_To_Buffer(): Could not get object info.");
-    return -1;
-  }
-  if (ob->oi.ObjectFormat == PTP_OFC_Association) {
-    add_error_to_errorstack(device, LIBMTP_ERROR_GENERAL, "LIBMTP_Get_Partialobject_To_Buffer(): Bad object format.");
-    return -1;
-  }
-
-  // Callbacks
-  ptp_usb->callback_active = 1;
-  ptp_usb->current_transfer_total = ob->oi.ObjectCompressedSize+
-    PTP_USB_BULK_HDR_LEN+sizeof(uint32_t); // Request length, one parameter
-  ptp_usb->current_transfer_complete = 0;
-  ptp_usb->current_transfer_callback = callback;
-  ptp_usb->current_transfer_callback_data = data;
-
-  ret = ptp_getpartialobject (params, id , 
-			offset,
-			maxbytes, 
-			buf ,
-			len);
-			
-  //ret = ptp_getobject_tofd(params, id, fd);
-
-  ptp_usb->callback_active = 0;
-  ptp_usb->current_transfer_callback = NULL;
-  ptp_usb->current_transfer_callback_data = NULL;
-
-  if (ret == PTP_ERROR_CANCEL) {
-    add_error_to_errorstack(device, LIBMTP_ERROR_CANCELLED, "LLIBMTP_Get_Partialobject_To_Buffer(): Cancelled transfer.");
-    return -1;
-  }
-  if (ret != PTP_RC_OK) {
-    add_ptp_error_to_errorstack(device, ret, "LIBMTP_Get_Partialobject_To_Buffer(): Could not get file from device.");
     return -1;
   }
 
